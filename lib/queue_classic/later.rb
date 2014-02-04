@@ -32,6 +32,10 @@ module QC
         QC.log_yield(:action => "insert_later_job") do
           s = "INSERT INTO #{QC::Later::TABLE_NAME} (q_name, not_before, method, args#{QC.format_custom(custom, :keys)}) VALUES ($1, $2, $3, $4#{QC.format_custom(custom, :values)})"
           ap s
+          ap q_name
+          ap not_before
+          ap method
+          ap JSON.dump(args)
           QC::Conn.execute(s, q_name, not_before, method, JSON.dump(args))
           ap 'executed'
         end
