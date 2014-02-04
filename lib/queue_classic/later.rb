@@ -60,6 +60,7 @@ module QC
 
     def process_tick
       QC::Later::Queries.delete_and_capture(Time.now).each do |job|
+        ap job
         queue = QC::Queue.new(job["q_name"])
 
         custom_keys = job.keys - DEFAULT_COLUMNS
