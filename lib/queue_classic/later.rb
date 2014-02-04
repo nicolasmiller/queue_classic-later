@@ -72,7 +72,7 @@ module QC
         ap 'custom_keys'
         ap custom_keys
         if !custom_keys.empty?
-          custom = custom_keys.each_with_object(Hash.new) |k, hash| hash[k] = job[k] if job.has_key?(k) }
+          custom = custom_keys.each_with_object(Hash.new) {|k, hash| hash[k] = job[k] if job.has_key?(k) }
           ap custom
           queue.enqueue_custom(job["method"], custom, *JSON.parse(job["args"]))
         else
