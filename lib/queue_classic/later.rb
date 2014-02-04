@@ -7,6 +7,7 @@ module QC
   module Later
 
     TABLE_NAME = "queue_classic_later_jobs"
+    DEFAULT_COLUMNS = ["id", "q_name", "method", "args", "created_at", "not_before"]
 
     module Setup
       extend self
@@ -26,10 +27,10 @@ module QC
 
     module Queries
       extend self
-
-      def insert(q_name, not_before, method, args)
+      
+      def insert(q_name, not_before, method, args, custom={})
         QC.log_yield(:action => "insert_later_job") do
-          s = "INSERT INTO #{QC::Later::TABLE_NAME} (q_name, not_before, method, args) VALUES ($1, $2, $3, $4)"
+          s = "INSERT INTO #{QC::Later::TABLE_NAME} (q_name, not_before, method, args#{QC.format_custom(QC.custom, :keys)}) VALUES ($1, $2, $3, $4#{QC.format_custom(custom, :values)})"
           QC::Conn.execute(s, q_name, not_before, method, JSON.dump(args))
         end
       end
@@ -49,6 +50,10 @@ module QC
       def enqueue_at(not_before, method, *args)
         QC::Later::Queries.insert(name, not_before, method, args)
       end
+
+      def enqueue_at_with_custom(not_before, method, custom, *args)
+        QC::Later::Queries.insert(name, not_before, method, args, custom)
+      end
     end
 
     extend self
@@ -58,7 +63,14 @@ module QC
       QC::Conn.transaction do
         QC::Later::Queries.delete_and_capture(Time.now).each do |job|
           queue = QC::Queue.new(job["q_name"])
-          queue.enqueue(job["method"], *JSON.parse(job["args"]))
+
+          custom_keys = job.keys - DEFAULT_COLUMNS
+          if !custom_keys.empty?
+            custom = job.each_with_object(Hash.new) { |k, hash| hash[k] = job[k] if job.has_key?(k) }
+            queue.enqueue_custom(job["method"], custom, job.values_at(*JSON.parse(job["args"]))
+          else
+            queue.enqueue(job["method"], *JSON.parse(job["args"]))
+          end
         end
       end
     end
