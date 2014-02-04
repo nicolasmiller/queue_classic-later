@@ -37,8 +37,12 @@ module QC
 
       def delete_and_capture(not_before)
         s = "DELETE FROM #{QC::Later::TABLE_NAME} WHERE not_before <= $1 RETURNING *"
+        ap s
         # need to ensure we return an Array even if Conn.execute returns a single item
-        [QC::Conn.execute(s, not_before)].compact.flatten
+        result = [QC::Conn.execute(s, not_before)].compact.flatten
+        ap 'result'
+        ap result
+        result
       end
     end
 
