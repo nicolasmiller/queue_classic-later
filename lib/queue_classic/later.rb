@@ -67,7 +67,7 @@ module QC
           custom_keys = job.keys - DEFAULT_COLUMNS
           if !custom_keys.empty?
             custom = job.each_with_object(Hash.new) { |k, hash| hash[k] = job[k] if job.has_key?(k) }
-            queue.enqueue_custom(job["method"], custom, job.values_at(*JSON.parse(job["args"]))
+            queue.enqueue_custom(job["method"], custom, job.values_at(*JSON.parse(job["args"])))
           else
             queue.enqueue(job["method"], *JSON.parse(job["args"]))
           end
