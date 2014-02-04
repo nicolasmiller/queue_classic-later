@@ -37,12 +37,8 @@ module QC
 
       def delete_and_capture(not_before)
         s = "DELETE FROM #{QC::Later::TABLE_NAME} WHERE not_before <= $1 RETURNING *"
-        ap s
-        ap not_before
         # need to ensure we return an Array even if Conn.execute returns a single item
         result = [QC::Conn.execute(s, not_before)].compact.flatten
-        ap 'result'
-        ap result
         result
       end
     end
@@ -65,15 +61,11 @@ module QC
 
     def process_tick
       QC::Later::Queries.delete_and_capture(Time.now).each do |job|
-        ap job
         queue = QC::Queue.new(job["q_name"])
 
         custom_keys = job.keys - DEFAULT_COLUMNS
-        ap 'custom_keys'
-        ap custom_keys
         if !custom_keys.empty?
           custom = custom_keys.each_with_object(Hash.new) {|k, hash| hash[k] = job[k] if job.has_key?(k) }
-          ap custom
           queue.enqueue_custom(job["method"], custom, *JSON.parse(job["args"]))
         else
           queue.enqueue(job["method"], *JSON.parse(job["args"]))
@@ -83,7 +75,6 @@ module QC
 
     # run QC::Later.tick as often as necessary via your clock process
     def tick skip_transaction=false
-      ap 'entering tick'
       if skip_transaction
         process_tick
       else
@@ -91,7 +82,6 @@ module QC
           process_tick
         end
       end
-      ap 'exiting tick'
     end
   end
 end
