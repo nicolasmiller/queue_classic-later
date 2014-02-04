@@ -66,11 +66,13 @@ module QC
 
     # run QC::Later.tick as often as necessary via your clock process
     def tick
+      ap 'entering tick'
       QC::Conn.transaction do
         QC::Later::Queries.delete_and_capture(Time.now).each do |job|
           queue = QC::Queue.new(job["q_name"])
 
           custom_keys = job.keys - DEFAULT_COLUMNS
+          ap custom_keys
           if !custom_keys.empty?
             custom = job.each_with_object(Hash.new) { |k, hash| hash[k] = job[k] if job.has_key?(k) }
             queue.enqueue_custom(job["method"], custom, job.values_at(*JSON.parse(job["args"])))
@@ -79,6 +81,7 @@ module QC
           end
         end
       end
+      ap 'exiting tick'
     end
   end
 end
