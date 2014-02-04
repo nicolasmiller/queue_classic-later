@@ -57,8 +57,8 @@ module QC
         QC::Later::Queries.insert(name, not_before, method, args)
       end
 
-      def enqueue_at_with_custom(not_before, method, custom, *args)
-        QC::Later::Queries.insert(name, not_before, method, args, custom)
+      def enqueue_in_with_custom(seconds, method, custom, *args)
+        QC::Later::Queries.insert(name, Time.now + seconds, method, args, custom)
       end
     end
 
