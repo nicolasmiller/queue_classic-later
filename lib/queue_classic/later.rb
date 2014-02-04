@@ -31,13 +31,7 @@ module QC
       def insert(q_name, not_before, method, args, custom={})
         QC.log_yield(:action => "insert_later_job") do
           s = "INSERT INTO #{QC::Later::TABLE_NAME} (q_name, not_before, method, args#{QC.format_custom(custom, :keys)}) VALUES ($1, $2, $3, $4#{QC.format_custom(custom, :values)})"
-          ap s
-          ap q_name
-          ap not_before
-          ap method
-          ap JSON.dump(args)
           QC::Conn.execute(s, q_name, not_before, method, JSON.dump(args))
-          ap 'executed'
         end
       end
 
@@ -72,6 +66,7 @@ module QC
           queue = QC::Queue.new(job["q_name"])
 
           custom_keys = job.keys - DEFAULT_COLUMNS
+          ap 'custom_keys'
           ap custom_keys
           if !custom_keys.empty?
             custom = job.each_with_object(Hash.new) { |k, hash| hash[k] = job[k] if job.has_key?(k) }
