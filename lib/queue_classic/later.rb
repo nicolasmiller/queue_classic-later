@@ -9,6 +9,11 @@ module QC
     TABLE_NAME = "queue_classic_later_jobs"
     DEFAULT_COLUMNS = ["id", "q_name", "method", "args", "created_at", "not_before"]
 
+    def format_custom(custom, message)
+      return ", #{custom.send(message).join(', ')}" unless custom.empty?
+      ''
+    end
+
     module Setup
       extend self
 
@@ -27,10 +32,10 @@ module QC
 
     module Queries
       extend self
-      
+
       def insert(q_name, not_before, method, args, custom={})
         QC.log_yield(:action => "insert_later_job") do
-          s = "INSERT INTO #{QC::Later::TABLE_NAME} (q_name, not_before, method, args#{QC.format_custom(custom, :keys)}) VALUES ($1, $2, $3, $4#{QC.format_custom(custom, :values)})"
+          s = "INSERT INTO #{QC::Later::TABLE_NAME} (q_name, not_before, method, args#{format_custom(custom, :keys)}) VALUES ($1, $2, $3, $4#{format_custom(custom, :values)})"
           QC::Conn.execute(s, q_name, not_before, method, JSON.dump(args))
         end
       end
@@ -65,7 +70,11 @@ module QC
         custom_keys = job.keys - DEFAULT_COLUMNS
         if !custom_keys.empty?
           custom = custom_keys.each_with_object(Hash.new) {|k, hash| hash[k] = job[k] if job.has_key?(k) }
-          queue.enqueue_custom(job["method"], custom, *JSON.parse(job["args"]))
+
+          QC.log_yield(:action => "insert_qc_job") do
+            s = "INSERT INTO queue_classic_jobs (q_name, method, args#{format_custom(custom, :keys)}) VALUES ($1, $2, $3, $4#{format_custom(custom, :values)})"
+            QC::Conn.execute(s, job["q_name"], job["method"], job['args'])
+          end
         else
           queue.enqueue(job["method"], *JSON.parse(job["args"]))
         end
